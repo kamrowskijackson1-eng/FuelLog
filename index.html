@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FuelLog — Food & Calorie Tracker</title>
+<style>
+:root{--bg:#f3f6fa;--card:#fff;--ink:#182433;--muted:#66758a;--accent:#236dcc;--line:#e0e7ef;--green:#16835b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:#173b63;color:white;padding:25px 16px}header .wrap,main{max-width:950px;margin:auto}h1{margin:0 0 5px;font-size:1.8rem}header p{margin:0;color:#dce8f6}
+main{padding:18px 14px 42px}.intro{color:var(--muted);margin:0 0 16px;line-height:1.5}.card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:16px;margin-bottom:15px;box-shadow:0 3px 12px #1c36520a}
+h2{font-size:1.1rem;margin:0 0 13px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:15px}.metric-name{font-size:.85rem;color:var(--muted)}.metric{font-size:1.6rem;font-weight:760;margin:4px 0}.small{font-size:.83rem;color:var(--muted);line-height:1.45}
+.progress{height:8px;background:#e7edf5;border-radius:99px;overflow:hidden;margin-top:10px}.progress span{display:block;height:100%;width:0;background:var(--accent)}
+label{display:block;color:var(--muted);font-size:.9rem;margin:0 0 5px}input,textarea,button{font:inherit}input,textarea{width:100%;padding:10px 11px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:var(--ink)}textarea{min-height:90px;resize:vertical}
+button{border:0;border-radius:9px;padding:11px 14px;cursor:pointer;font-weight:650}.primary{background:var(--accent);color:white}.secondary{background:#eaf1f8;color:#204e7d}.danger{background:#fff0f0;color:#a32c2c}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row>div{flex:1 1 150px}.formgrid{display:grid;grid-template-columns:2fr repeat(4,1fr);gap:9px;align-items:end}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}.preview{display:none;max-width:100%;max-height:300px;object-fit:contain;background:#edf2f7;border-radius:12px;margin-top:12px}.hint{border-left:3px solid #8bb5e8;padding:9px 12px;background:#f2f7fd;border-radius:0 8px 8px 0;color:#38516d;font-size:.88rem;line-height:1.45;margin-top:12px}
+.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:530px}th,td{padding:10px 7px;border-bottom:1px solid var(--line);text-align:left;font-size:.9rem}th{color:var(--muted);font-weight:650}.empty{text-align:center;padding:22px 8px;color:var(--muted)}.section-label{display:flex;align-items:center;gap:8px}.number{background:#e8f1fc;color:#1e5aa3;border-radius:50%;width:27px;height:27px;display:inline-flex;align-items:center;justify-content:center;font-size:.9rem}
+@media(max-width:650px){h1{font-size:1.55rem}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.formgrid .wide{grid-column:1/-1}}
+</style></head>
+<body>
+<header><div class="wrap"><h1>FuelLog</h1><p>Your food, nutrition, and progress in one place</p></div></header>
+<main>
+<p class="intro">Log meals, keep an eye on your daily nutrition, and use a food photo with an AI prompt to estimate what's on your plate.</p>
+<div class="row" style="margin-bottom:15px">
+ <div><label for="day">Tracking date</label><input id="day" type="date"></div>
+ <div><label for="goal">Daily calorie goal (optional)</label><input id="goal" type="number" min="0" step="50" placeholder="Set a goal"></div>
+ <div style="flex:0 1 auto"><button class="secondary" id="saveGoal">Save goal</button></div>
+</div>
+<section class="grid">
+ <div class="card"><div class="metric-name">Calories</div><div class="metric" id="calTotal">0</div><div class="small" id="calSub">No goal set</div><div class="progress"><span id="calBar"></span></div></div>
+ <div class="card"><div class="metric-name">Protein</div><div class="metric" id="proteinTotal">0 g</div><div class="small">Today's total</div></div>
+ <div class="card"><div class="metric-name">Carbs</div><div class="metric" id="carbsTotal">0 g</div><div class="small">Today's total</div></div>
+ <div class="card"><div class="metric-name">Fat</div><div class="metric" id="fatTotal">0 g</div><div class="small">Today's total</div></div>
+</section>
+<section class="card">
+ <h2 class="section-label"><span class="number">1</span> Take a food photo</h2>
+ <label for="photo">Use camera or choose from your photo library</label><input id="photo" type="file" accept="image/*" capture="environment">
+ <img id="preview" class="preview" alt="Selected food photo">
+ <div style="margin-top:12px"><label for="prompt">Describe the food to your AI assistant</label><textarea id="prompt" placeholder="Example: This is grilled chicken, rice, and broccoli. The chicken is about 6 ounces, and I used a teaspoon of olive oil. Estimate the portion and nutrition."></textarea></div>
+ <div class="actions"><button class="primary" id="copyPrompt">Copy AI prompt</button><button class="secondary" id="clearPhoto">Clear photo</button></div>
+ <div id="photoStatus" class="small" role="status" style="margin-top:8px"></div>
+ <div class="hint"><strong>Free AI workflow:</strong> This GitHub Pages version can't call an AI model by itself. Open ChatGPT, attach the same photo, and ask it to estimate calories, protein, carbs, and fat. Then enter the result in Step 2. This avoids paid API calls and keeps your app free.</div>
+</section>
+<section class="card">
+ <h2 class="section-label"><span class="number">2</span> Add or edit nutrition</h2>
+ <form id="foodForm"><div class="formgrid">
+  <div class="wide"><label for="food">Food / meal name</label><input id="food" maxlength="100" required placeholder="e.g. Chicken, rice & broccoli"></div>
+  <div><label for="calories">Calories (kcal)</label><input id="calories" type="number" min="0" step="1" required placeholder="0"></div>
+  <div><label for="protein">Protein (g)</label><input id="protein" type="number" min="0" step=".1" value="0" required></div>
+  <div><label for="carbs">Carbs (g)</label><input id="carbs" type="number" min="0" step=".1" value="0" required></div>
+  <div><label for="fat">Fat (g)</label><input id="fat" type="number" min="0" step=".1" value="0" required></div>
+ </div><div class="actions"><button class="primary" type="submit">Add to food log</button><button class="secondary" type="reset">Clear fields</button></div></form>
+ <p class="small">Use package labels when available. Photo estimates can be off because portion size, oil, sauces, and ingredients may be hard to see.</p>
+</section>
+<section class="card">
+ <h2 class="section-label"><span class="number">3</span> Today's food log</h2>
+ <div class="tablewrap"><table><thead><tr><th>Food</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th></th></tr></thead><tbody id="foodRows"></tbody></table></div>
+ <div class="empty" id="emptyState">No food logged for this date yet. Add your first meal above.</div>
+ <div class="actions"><button class="secondary" id="exportCsv">Export CSV backup</button><button class="danger" id="clearDay">Clear this date</button></div>
+</section>
+<p class="small">FuelLog stores your entries in this browser on this device. If you clear browser data or change devices, your log may not follow you—use Export CSV to keep a backup. Nutrition estimates are approximate. If you're still growing and working on weight gain, a healthcare professional or registered dietitian can help you choose an appropriate plan.</p>
+</main>
+<script>
+(()=>{
+const $=id=>document.getElementById(id),KEY='fuellog_static_v1';
+const now=new Date();$('day').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+let data={};try{data=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch{}
+const entries=()=>data[$('day').value]||[], goal=()=>data.goals?.[$('day').value]??'';
+const save=()=>localStorage.setItem(KEY,JSON.stringify(data)), n=id=>Math.max(0,Number($(id).value)||0);
+const fmt=x=>Number(x.toFixed(1)).toLocaleString(undefined,{maximumFractionDigits:1});
+function render(){
+ const es=entries(),t=es.reduce((a,e)=>{['calories','protein','carbs','fat'].forEach(k=>a[k]+=Number(e[k])||0);return a},{calories:0,protein:0,carbs:0,fat:0}),g=Number(goal())||0;
+ $('goal').value=goal();$('calTotal').textContent=Math.round(t.calories).toLocaleString();$('proteinTotal').textContent=fmt(t.protein)+' g';$('carbsTotal').textContent=fmt(t.carbs)+' g';$('fatTotal').textContent=fmt(t.fat)+' g';
+ $('calSub').textContent=g?`${Math.round(t.calories).toLocaleString()} of ${g.toLocaleString()} kcal`:'No goal set';$('calBar').style.width=g?Math.min(100,t.calories/g*100)+'%':'0%';
+ $('foodRows').replaceChildren();$('emptyState').style.display=es.length?'none':'block';
+ es.forEach((e,i)=>{const tr=document.createElement('tr');[e.food,Math.round(e.calories).toLocaleString(),fmt(e.protein)+' g',fmt(e.carbs)+' g',fmt(e.fat)+' g'].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.append(td)});const td=document.createElement('td'),b=document.createElement('button');b.className='danger';b.textContent='Delete';b.onclick=()=>{entries().splice(i,1);save();render()};td.append(b);tr.append(td);$('foodRows').append(tr)});
+}
+$('foodForm').onsubmit=e=>{e.preventDefault();const food=$('food').value.trim();if(!food)return;data[$('day').value]??=[];data[$('day').value].push({food,calories:n('calories'),protein:n('protein'),carbs:n('carbs'),fat:n('fat')});save();render();$('foodForm').reset();$('protein').value=$('carbs').value=$('fat').value='0'};
+$('saveGoal').onclick=()=>{data.goals??={};const v=$('goal').value.trim();if(v==='')delete data.goals[$('day').value];else data.goals[$('day').value]=Math.max(0,Number(v)||0);save();render()};
+$('day').onchange=render;
+$('clearDay').onclick=()=>{if(entries().length&&confirm('Delete all entries for this date?')){data[$('day').value]=[];save();render()}};
+$('exportCsv').onclick=()=>{const rows=[['Date','Food','Calories','Protein_g','Carbs_g','Fat_g']];Object.keys(data).filter(k=>k!=='goals').sort().forEach(d=>(data[d]||[]).forEach(e=>rows.push([d,e.food,e.calories,e.protein,e.carbs,e.fat])));const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n'),url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'})),a=document.createElement('a');a.href=url;a.download='fuellog-food-log.csv';a.click();URL.revokeObjectURL(url)};
+$('photo').onchange=()=>{const f=$('photo').files[0];if(!f){$('preview').style.display='none';return}if(!f.type.startsWith('image/')){$('photoStatus').textContent='Please choose an image file.';return}const reader=new FileReader();reader.onload=()=>{$('preview').src=reader.result;$('preview').style.display='block';$('photoStatus').textContent='Photo ready. Attach this photo in ChatGPT for a nutrition estimate.'};reader.readAsDataURL(f)};
+$('clearPhoto').onclick=()=>{$('photo').value='';$('preview').style.display='none';$('preview').src='';$('photoStatus').textContent='Photo cleared.'};
+$('copyPrompt').onclick=async()=>{const base=$('prompt').value.trim()||'Estimate this meal from the photo.';const text=base+' Give a best-effort estimate of portion sizes, calories (kcal), protein (g), carbohydrates (g), and fat (g). Explain any assumptions and uncertainty. Return a concise table.';try{await navigator.clipboard.writeText(text);$('photoStatus').textContent='Prompt copied. Open ChatGPT, attach the photo, and paste the prompt.'}catch{$('prompt').value=text;$('photoStatus').textContent='Prompt prepared in the text box. Copy it and paste it into ChatGPT.'}};
+render();
+})();
+</script></body></html>
